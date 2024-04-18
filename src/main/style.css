@@ -1,0 +1,60 @@
+.root {
+    -fx-background-color: black;
+    -fx-font-family: 'Monospaced';
+}
+
+.label {
+    -fx-text-fill: black;
+    -fx-background-color: #7df9ff;
+    -fx-effect: dropshadow(three-pass-box, #7df9ff, 10, 0, 0, 0);
+}
+
+#usernameLabel {
+    -fx-background-color: #7df9ff;
+    -fx-text-fill: black;
+    -fx-effect: dropshadow(three-pass-box, #7df9ff, 10, 0, 0, 0);
+    -fx-pref-width: 200px;
+    -fx-font-size: 20px;
+}
+
+.button {
+    -fx-background-color: #7df9ff;
+    -fx-text-fill: black;
+    -fx-effect: dropshadow(three-pass-box, #7df9ff, 10, 0, 0, 0);
+}
+
+.button:hover {
+    -fx-background-color: #6be8e0;
+    -fx-text-fill: white;
+}
+
+.text-field {
+    -fx-background-color: #7df9ff;
+    -fx-text-fill: black;
+    -fx-prompt-text-fill: black;
+    -fx-effect: dropshadow(three-pass-box, #7df9ff, 10, 0, 0, 0);
+}
+
+.text-field:focused {
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+}
+
+.combo-box {
+    -fx-background-color: #7df9ff;
+    -fx-text-fill: black;
+    -fx-prompt-text-fill: black;
+    -fx-effect: dropshadow(three-pass-box, #7df9ff, 10, 0, 0, 0);
+}
+
+.list-view {
+    -fx-background-color: #7df9ff;
+    -fx-text-fill: black;
+}
+
+.border-pane {
+    -fx-background-color: #2b2b2b;
+    -fx-border-color: #7ba3cc;
+    -fx-border-width: 2px;
+    -fx-effect: dropshadow(three-pass-box, #7df9ff, 10, 0, 0, 0);
+}
