@@ -2,7 +2,9 @@
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 
+import javafx.animation.TranslateTransition;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -16,26 +18,28 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
+import javafx.util.Duration;
 
 public class GuiClient extends Application{
 
 
 	//GUI components
 	TextField messageField, groupNameField;
-	Button submitButton, createGroupButton, newGroupButton, seeSentToUserButton, userNameButton;
+	Button submitButton, createGroupButton, newGroupButton, seeSentToUserButton;
 	HashMap<String, Scene> sceneMap;
-	VBox clientBox;
 	Client clientConnection;
 	ComboBox<String> recipientListComboBox;
 	ComboBox<String> groupListComboBox;
 	ListView<String> listItems2;
 	List<String> currentRecipients = new ArrayList<>();
 	ObservableList<String> connectedClients = FXCollections.observableArrayList();
+	ObservableList<String> allGroupChats = FXCollections.observableArrayList();
+	ComboBox<String> groupComboBox;
 	Label recipientsLabel = new Label();
 	Label groupLabel;
 	ObservableList<String> groupList = FXCollections.observableArrayList();
 	String currentGroup = "";
-	boolean usernameAssigned = false;
+	boolean usernameAssigned;
 
 	public static void main(String[] args) {
 		launch(args);
@@ -69,7 +73,11 @@ public class GuiClient extends Application{
 							}
 						}
 						if (message.getType().equals("usernameCheck")) {
-                            usernameAssigned = !message.getMessage().equals("Username already taken");
+                            usernameAssigned = message.getMessage().equals("Username available");
+						}
+						if (message.getType().equals("groupList")) {
+							List<String> groupsCopy = new ArrayList<>(message.getReceiver());
+							handleAllGroups(groupsCopy);
 						}
 					} else {
 						listItems2.getItems().add(data.toString());
@@ -87,6 +95,19 @@ public class GuiClient extends Application{
 			clientConnection.send(messageField.getText(), currentRecipients, groupLabel.getText());
 			clientConnection.updateGroupChatHistory(groupLabel.getText(), messageField.getText());
 			messageField.clear();
+		});
+
+		messageField.setPromptText("Enter message");
+
+		TranslateTransition tt = new TranslateTransition(Duration.millis(200), messageField);
+		tt.setByY(5);
+		tt.setCycleCount(2);
+		tt.setAutoReverse(true);
+
+		messageField.focusedProperty().addListener((observable, oldValue, newValue) -> {
+			if (newValue) {
+				tt.play();
+			}
 		});
 
 		sceneMap = new HashMap<>();
@@ -110,6 +131,8 @@ public class GuiClient extends Application{
 		usernameLabel.setId("usernameLabel");
 		recipientListComboBox = new ComboBox<>();
 		groupListComboBox = new ComboBox<>();
+		groupComboBox = new ComboBox<>();
+		groupComboBox.setPromptText("All active groups");
 		groupListComboBox.setPromptText("Select group");
 		groupNameField = new TextField();
 		groupNameField.setPromptText("Enter group name");
@@ -212,7 +235,7 @@ public class GuiClient extends Application{
 		HBox groupButtonBox = new HBox(10, createGroupButton, newGroupButton, seeSentToUserButton);
 		groupButtonBox.setAlignment(Pos.CENTER);
 
-		HBox topHBox = new HBox(10, usernameLabel);
+		HBox topHBox = new HBox(10, usernameLabel, groupComboBox);
 		topHBox.setAlignment(Pos.CENTER);
 		topHBox.setPadding(new Insets(10));
 		borderPane.setTop(topHBox);
@@ -243,25 +266,30 @@ public class GuiClient extends Application{
 		Button userNameButton = new Button("Submit");
 		VBox userBox = new VBox(10, usernameLabel, usernameField, userNameButton);
 		userBox.setAlignment(Pos.CENTER);
-		System.out.println(connectedClients);
 		userNameButton.setOnAction(e->{
 			String username = usernameField.getText();
 			if (!username.isEmpty()) {
-				clientConnection.checkAvailableUserNames(username);
+				CountDownLatch latch = new CountDownLatch(1);
+				clientConnection.checkAvailableUserNames(username, latch);
+				try {
+					latch.await();
+				} catch (InterruptedException interruptedException) {
+					interruptedException.printStackTrace();
+				}
 			}
-			if (usernameAssigned) {
+			if (clientConnection.getUserNameAssigned()) {
+				clientConnection.updateUsername(username);
+				clientConnection.sendUsername(username);
+				sceneMap.put("client", createClientGui(username));
+				primaryStage.setScene(sceneMap.get("client"));
+
+			} else {
 				usernameField.clear();
-				usernameAssigned = false;
 				Alert alert = new Alert(Alert.AlertType.ERROR);
 				alert.setTitle("Error");
 				alert.setHeaderText("Username already taken");
 				alert.setContentText("Please enter a different username");
 				alert.showAndWait();
-			} else {
-				clientConnection.updateUsername(username);
-				clientConnection.sendUsername(username);
-				sceneMap.put("client", createClientGui(username));
-				primaryStage.setScene(sceneMap.get("client"));
 			}
 		});
 
@@ -289,6 +317,16 @@ public class GuiClient extends Application{
 			if (!this.groupList.contains(groupName)) {
 				this.groupList.add(groupName);
 				groupListComboBox.setItems(groupList);
+			}
+		});
+	}
+
+	public void handleAllGroups(List<String> groups) {
+		Platform.runLater(()->{
+			if (!groups.isEmpty()) {
+				this.allGroupChats.clear();
+				this.allGroupChats.addAll(groups);
+				groupComboBox.setItems(allGroupChats);
 			}
 		});
 	}
